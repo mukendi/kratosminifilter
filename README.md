@@ -194,7 +194,7 @@ Modify `KS_EvaluateThreatScore()` in `KratosDetection.cpp` to adjust the WARNING
 
 ---
 <p align="center">
-  <img src="https://github.com/mukendi/kratosminifilter/blob/master/Screenshot%202026-07-13%20095112.png" width="300" alt="Texte alternatif">
+  <img src="https://github.com/mukendi/kratosminifilter/blob/master/Screenshot%202026-07-13%20095112.png" width="500" height="650" alt="Texte alternatif">
 </p>
 
 ## Legal Warnings
