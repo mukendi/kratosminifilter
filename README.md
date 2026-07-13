@@ -193,6 +193,9 @@ Modify `KS_EvaluateThreatScore()` in `KratosDetection.cpp` to adjust the WARNING
 - FNV-1a is not resistant to intentional collision forging (SHA-256 recommended for production)
 
 ---
+<p align="center">
+  <img src="https://github.com/mukendi/kratosminifilter/blob/master/Screenshot%202026-07-13%20095112.png" width="300" alt="Texte alternatif">
+</p>
 
 ## Legal Warnings
 
