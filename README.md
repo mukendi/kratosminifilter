@@ -1,208 +1,348 @@
-# 🛡️ Kratos Minifilter — Windows Kernel Anti-Ransomware Driver
+# Kratos MiniFilter
 
+> A research-oriented Windows Kernel MiniFilter designed to study behavioral ransomware detection at the file-system level.
 
-> **Defensive Security Research Project** — Windows minifilter driver developed in C++ for the real-time detection and neutralization of ransomware at the kernel level (Ring 0).
-
----
-
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Detection Mechanisms](#detection-mechanisms)
-- [Blacklist by Fingerprint](#blacklist-by-fingerprint)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Limitations](#limitations)
-- [Legal Warnings](#legal-warnings)
+![Platform](https://img.shields.io/badge/Platform-Windows%20x64-blue)
+![Language](https://img.shields.io/badge/Language-C%2B%2B-orange)
+![Driver](https://img.shields.io/badge/Kernel-Minifilter-success)
+![Research](https://img.shields.io/badge/Focus-Behavioral%20Detection-red)
 
 ---
 
-## Overview
+# Overview
 
-Kratos (`Kratos.sys`) is a Windows minifilter driver operating at altitude **425342** (Anti-Virus tier) via the Filter Manager (`fltmgr.sys`). Unlike static signature-based antivirus solutions, Kratos adopts a **purely behavioral** approach:
+Kratos is an educational Windows File System Minifilter built on top of Microsoft's Filter Manager (`fltmgr.sys`).
 
-- **No signature database** — detects unknown ransomware
-- **Kernel-mode** — atomic interception before validation on disk
-- **Multi-level** — behavioral + entropic + structural
-- **Persistent** — blacklist by hash to block re-executions
+Instead of relying on malware signatures, Kratos explores how ransomware can be detected by observing file-system behavior directly inside the Windows kernel.
 
-### Goals
+The project demonstrates how a security driver can:
 
-| Objective | Result |
+- monitor file creation, deletion and renaming;
+- analyze write entropy in real time;
+- correlate multiple suspicious activities;
+- assign behavioral threat scores;
+- terminate malicious processes;
+- prevent reinfection using kernel-level fingerprinting.
 
-|----------|---------|
+Kratos is **not intended to become a commercial antivirus**.
 
-| Affected Files (First Run) | < 5 |
-
-| Affected Files (Reruns) | **0** |
-
-| False Positive Rate | **0%** (After Tuning) |
-
-| Compatibility | NTFS / ReFS |
+Its primary objective is to understand how modern Endpoint Detection and Response (EDR) products implement behavioral ransomware detection inside the Windows kernel.
 
 ---
 
-## Architecture
+# Why Kratos?
+
+Traditional antivirus products depend heavily on signatures.
+
+Modern ransomware changes constantly.
+
+Instead of asking
+
+> "Do I know this malware?"
+
+Kratos asks
+
+> "Does this process behave like ransomware?"
+
+This project demonstrates how multiple weak signals can be correlated into a high-confidence behavioral detection engine.
+
+---
+
+# High-Level Architecture
 
 ```
-User-Mode
-    │
-    ▼
-Filter Manager (fltmgr.sys) ← Altitude 425342
-    │
-    ▼
-┌─────────────────────────────────────────────────────┐
-│                  KRATOS.SYS                         │
-│                                                     │
-│  IRP_MJ_CREATE      → Initializing contexts         │
-│  IRP_MJ_WRITE       → Entropic analysis             │
-│  IRP_MJ_READ        → R/W ratio counting            │
-│  IRP_MJ_SET_INFORMATION → Delete/Rename Detection   │
-│                                                     │
-│  RTL_AVL_TABLE  → KS_PROCESS_CONTEXT per PID        │
-│  FLT_FILE_CONTEXT → Entropy + state per file        │
-└─────────────────────────────────────────────────────┘
-    │
-    ▼
-NTFS / ReFS
-```
-
-
-## Detection Mechanisms
-
-### Level 1 — Behavioral
-
-Kratos distinguishes between deletions of **valuable files** (`.docx`, `.pdf`, `.jpg`...) and deletions of system/cache files using `KS_IsValuableFile()`:
-
-- **ValuableDeleteCount** — deletions outside system directories
-- **RenameToSuspicious** — renaming to an unknown extension
-- **HighEntropyWrites** — entropy increase detected
-
-### Level 2 — Entropy
-
-Calculation via a **pre-calculated LUT** (`KratosEntropyLUT512`) — avoids the use of `log2()`, which is unavailable in kernel mode. 512-byte sample per write operation.
-
-- **Delta**: existing file with low entropy → encrypted data
-- **Absolute**: new `.tmp` file with entropy ≥ 7.5/8 bits
-
-### Level 3 — Structural (Inverse Whitelist)
-
-> **Main innovation**: instead of a blacklist of malicious extensions, Kratos uses a **whitelist of legitimate extensions**.
-
-```
-Original extension is valuable? YES
-New extension is recognized? NO
-→ SUSPECT — regardless of the extension chosen
-```
-
-This approach can detect LockBit 3.0 (`.xmjzh8q`), BlackCat/ALPHV (random) and any future ransomware using an unknown extension.
-
-### Scoring Formula
-
-```
-ValuableDeleteCount > 10 → +10 pts
-RenameToSuspicious > 2 → +40 pts
-HighEntropyWrites > 3 → +40 pts
-RansomNoteCreated → +60 pts
-ShadowCopyDeleted → +75 pts
-
-Score ≥ 60 → WARNING
-Score ≥ 80 → CRITICAL + Kill + Blacklist
+                User Applications
+                        │
+                        ▼
+              Windows I/O Manager
+                        │
+                        ▼
+          Filter Manager (fltmgr.sys)
+                        │
+                        ▼
+         ┌────────────────────────────┐
+         │        Kratos.sys          │
+         │                            │
+         │  IRP_MJ_CREATE             │
+         │  IRP_MJ_READ               │
+         │  IRP_MJ_WRITE              │
+         │  IRP_MJ_SET_INFORMATION    │
+         │                            │
+         │  Process Contexts          │
+         │  File Contexts             │
+         │  Threat Scoring            │
+         └────────────────────────────┘
+                        │
+                        ▼
+                  NTFS / ReFS
 ```
 
 ---
 
-## Blacklist by Digital Footprint
+# Detection Pipeline
 
-Once ransomware is detected, Kratos calculates its **64-bit FNV-1a hash** on the first 4096 bytes of the executable (PE Header + beginning of code) and persists it in the registry:
+Kratos does not rely on a single indicator.
+
+Every process accumulates evidence.
 
 ```
-\Registry\Machine\SOFTWARE\Kratos\Blacklist
-  └── 1F81F13004B5B920 = "C:\Users\...\Hercule.exe"
-```
+Process
 
-Each time a process is created, `ProcessNotifyCallback` checks the blacklist **before** any execution. The process is blocked via `CreationStatus = STATUS_ACCESS_DENIED`.
+↓
 
-**Renaming resistance**: the FNV-1a hash is identical regardless of the file name (`Hercule-AES.exe`, `HERCUL~1.EXE`, `chrome.exe`...).
+Create File
 
-**Protection against spoofing**: Whitelisted processes are validated by **Expected Name + Path**:
+↓
 
-```c
-chrome.exe + \Program Files\Google\Chrome\Application\ → Legitimate
-chrome.exe + C:\Users\...\Desktop\                    → IMPOSTOR
+Write Data
+
+↓
+
+Entropy Analysis
+
+↓
+
+Delete Files
+
+↓
+
+Rename Files
+
+↓
+
+Threat Score
+
+↓
+
+Warning
+
+↓
+
+Critical
+
+↓
+
+Process Termination
+
+↓
+
+Fingerprint Blacklist
 ```
 
 ---
 
-## Installation
+# Detection Engine
 
-### Prerequisites
+Kratos combines three independent detection layers.
 
-- Windows 10/11 (x64)
-- Visual Studio 2022 with WDK (Windows Driver Kit)
-- VM with Secure Boot **disabled** (or test signing enabled)
+## Behavioral Analysis
 
-### Compilation
+- Valuable file deletion
+- Suspicious rename operations
+- Ransom note creation
+- Shadow Copy deletion
 
-```bash
-# Open KratosMinifilter.sln in Visual Studio
-# Configuration: Debug or Release / x64
-# Build → Build Solution
+---
+
+## Entropy Analysis
+
+Each write operation is sampled.
+
+Instead of calling floating-point functions unavailable inside the kernel, Kratos uses a precomputed lookup table.
+
+The detector identifies:
+
+- encrypted overwrite
+- high-entropy temporary files
+- sudden entropy increase
+
+---
+
+## Structural Analysis
+
+Instead of maintaining a blacklist of malicious extensions, Kratos introduces an **inverse whitelist**.
+
+```
+Original extension
+
+↓
+
+Valuable ?
+
+↓
+
+YES
+
+↓
+
+New Extension
+
+↓
+
+Known ?
+
+↓
+
+NO
+
+↓
+
+Suspicious
 ```
 
-### Deployment (Test VM)
+Because of this approach, Kratos does not need to know future ransomware extensions.
 
-```powershell
-# On the target VM — enable test mode
-bcdedit /set testsigning on
+---
 
-# Copy Kratos.sys and Kratos.inf
-# Install via Device Manager or sc.exe
-sc create Kratos type= kernel start= boot binPath= "C:\Kratos\Kratos.sys"
-sc start Kratos
+# Threat Scoring
+
+Every suspicious action contributes to a cumulative score.
+
+| Event | Score |
+|-------|-------:|
+| Valuable File Deletion | +10 |
+| Suspicious Rename | +40 |
+| High Entropy Writes | +40 |
+| Ransom Note Creation | +60 |
+| Shadow Copy Deletion | +75 |
+
+```
+0 ─────────────── Normal
+
+60 ───────────── Warning
+
+80 ───────────── Critical
+
+Terminate Process
+
+Blacklist Fingerprint
 ```
 
 ---
 
-## Configuration
+# Fingerprint Blacklist
 
-### Monitored Extensions (Reverse Whitelist)
+Once ransomware is confirmed, Kratos computes a 64-bit FNV-1a fingerprint from the executable.
 
-Modify `g_LegitExtensions[]` in `KratosDetection.cpp` to adjust the extensions considered legitimate after a renaming.
+The fingerprint is stored inside:
 
-### Whitelisted Processes
-
-Modify `g_TrustedProcesses[]` to add legitimate processes with their expected path:
-
-```c
-{ "myapp.exe", L"\\Program Files\\MyApp\\" },
+```
+HKLM\SOFTWARE\Kratos\Blacklist
 ```
 
-### Scoring Thresholds
+Future executions are blocked **before** the ransomware starts encrypting files.
 
-Modify `KS_EvaluateThreatScore()` in `KratosDetection.cpp` to adjust the WARNING/CRITICAL thresholds according to your environment.
+Unlike filename-based blacklists, fingerprinting survives:
+
+- renamed binaries
+- copied executables
+- random filenames
+
+---
+
+# Driver Architecture
+
+Major components include:
+
+- DriverEntry
+- Filter Registration
+- Instance Callbacks
+- Process Notifications
+- File Context Management
+- Process Context Management
+- Threat Scoring Engine
+- Entropy Engine
+- Fingerprint Database
 
 ---
 
+# Current Features
 
-## Limitations
-
-- 1 to 3 files may be affected during the **first** execution
-- No automatic recovery mechanism for encrypted files
-- FNV-1a is not resistant to intentional collision forging (SHA-256 recommended for production)
+- Kernel MiniFilter
+- Behavioral Detection
+- Entropy Detection
+- Reverse Whitelist
+- Threat Scoring
+- Process Fingerprinting
+- Registry Blacklist
+- Process Creation Callback
+- Kernel Process Blocking
+- DebugView Logging
 
 ---
+
+# Build Requirements
+
+- Windows 10 / 11 x64
+- Visual Studio 2022
+- Windows Driver Kit (WDK)
+- Test Signing enabled
+- Secure Boot disabled (recommended)
+
+---
+
+# Research Goals
+
+Kratos serves as an experimental platform for studying:
+
+- Behavioral ransomware detection
+- Windows File System MiniFilters
+- Kernel-mode telemetry
+- File-system monitoring
+- EDR detection logic
+- Process reputation
+- Anti-ransomware techniques
+
+---
+
+# Roadmap
+
+## Completed
+
+- Behavioral Engine
+- Entropy Engine
+- Threat Scoring
+- Fingerprint Blacklist
+- Registry Persistence
+
+## Planned
+
+- SHA-256 fingerprinting
+- ETW telemetry
+- User-mode service
+- Cloud reputation
+- YARA integration
+- Machine-learning assisted scoring
+- Hypervisor-assisted protection (ArgusVisor integration)
+
+---
+
+# Screenshots
+
 <p align="center">
-  <img src="https://github.com/mukendi/kratosminifilter/blob/master/Screenshot%202026-07-13%20095112.png" width="500" height="650" alt="Texte alternatif">
+<img src="docs/images/demo.png" width="650">
 </p>
 
-## Legal Warnings
-
-> ⚠️ **This driver is developed within a defensive security research framework.**
->
-> - Use is **strictly reserved** for isolated test environments (VMs without network access)
-> - Any deployment on a production system is carried out under the user's sole responsibility
-> - The author disclaims all liability for any damage resulting from improper use
-> - Modifying this driver to bypass security systems without authorization is **illegal**
 ---
+
+# Safety Warning
+
+Kratos executes inside the Windows kernel.
+
+Incorrect callbacks or synchronization bugs may result in system crashes.
+
+Use only inside isolated research environments.
+
+---
+
+# Educational Mission
+
+Kratos is not designed to compete with commercial antivirus software.
+
+Its objective is to demonstrate how modern behavioral anti-ransomware technologies can be implemented inside a Windows Kernel MiniFilter while remaining understandable, extensible and suitable for research.
+
+---
+
+# License
+
+Educational and Research Purposes.
