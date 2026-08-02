@@ -11,7 +11,7 @@
 
 # Overview
 
-Kratos is an educational Windows File System Minifilter built on top of Microsoft's Filter Manager (`fltmgr.sys`).
+Kratos is a research Windows File System Minifilter built on top of Microsoft's Filter Manager (`fltmgr.sys`).
 
 Instead of relying on malware signatures, Kratos explores how ransomware can be detected by observing file-system behavior directly inside the Windows kernel.
 
@@ -333,7 +333,7 @@ Use only inside isolated research environments.
 
 ---
 
-# Educational Mission
+# Research Mission
 
 Kratos is not designed to compete with commercial antivirus software.
 
