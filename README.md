@@ -319,7 +319,7 @@ Kratos serves as an experimental platform for studying:
 
 # PoC
 
-![Architecture](https://github.com/mukendi/kratosminifilter/blob/master/Screenshot%202026-07-13%20095112.png)
+![Architecture](https://github.com/mukendi/kratosminifilter/blob/master/Kratos_DarkSide.png)
 
 ---
 
