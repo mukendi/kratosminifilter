@@ -316,7 +316,7 @@ Kratos serves as an experimental platform for studying:
 - Hypervisor-assisted protection (ArgusVisor integration)
 
 ---
-# Attack chronological
+# Attack timeline
 
 Here is the exact chronology of this Ring 0 neutralization by Kratos (the anti-ransomware minifilter driver I am developing), reconstructed from kernel logs—featuring an unexpected twist on hypervisor shared folders:
 
@@ -338,17 +338,21 @@ A second thread (PID 5236) rushes into the blog-security-main directory on Hardd
 A third launch attempt of the binary is initiated (PID 704).
 Right at the PreCreate callback, Kratos hashes the PE header, matches the blacklisted fingerprint, and smothers execution at the source: 0 files touched.
 
-# Battle Report:
-​User files impacted: 5 total (3 on Guest, 2 on Host via Shared Folder).
-​Guest-to-Host lateral infection: Completely blocked from Ring 0 inside the VM.
-​Response time: Microseconds (fixed-point LUT entropy calculation, zero floating-point operations).
-​Proactive defense: 100% FNV-1a fingerprinting efficacy upon re-execution.
+## Battle Report:
 
-# PoC
+​- User files impacted: 5 total (3 on Guest, 2 on Host via Shared Folder).
+
+​- Guest-to-Host lateral infection: Completely blocked from Ring 0 inside the VM.
+
+​- Response time: Microseconds (fixed-point LUT entropy calculation, zero floating-point operations).
+
+​- Proactive defense: 100% FNV-1a fingerprinting efficacy upon re-execution.
+
+## PoC
 
 ![Architecture](https://github.com/mukendi/kratosminifilter/blob/master/Kratos_DarkSide.png)
 
-‎Figure 1:  Battle - Kratos vs DarkSide
+‎Figure : Kratos vs DarkSide
 
 
 # Safety Warning
