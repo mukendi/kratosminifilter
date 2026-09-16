@@ -316,6 +316,33 @@ Kratos serves as an experimental platform for studying:
 - Hypervisor-assisted protection (ArgusVisor integration)
 
 ---
+# Attack chronological
+
+Here is the exact chronology of this Ring 0 neutralization by Kratos (the anti-ransomware minifilter driver I am developing), reconstructed from kernel logs—featuring an unexpected twist on hypervisor shared folders:
+
+​1. Note Drop (Silent Pass)
+DarkSide begins by generating its .txt ransom note. Because text files generate low entropy and standard I/O patterns, Kratos triggers no alerts.
+Intentional architectural choice: zero false positives on legitimate text editors and office software.
+
+​2. Behavioral Breach (Guest VM)
+The malware shifts to its destructive phase, targeting desktop files with the .27efa0d1 extension.
+After 3 suspicious renames (a ZIP archive and 2 PNG images), syntax analysis combined with high entropy pushes the Threat Score past the critical threshold (\ge 80).
+​Action: Kratos denies I/O (STATUS_ACCESS_DENIED), terminates the process (PID 6412), samples the first 4096 bytes of the PE header, and registers its FNV-1a hash (07BACD78B04E01D9) in the kernel blacklist.
+
+​3. Cross-Boundary Attack: Saving the HOST System! 🛑
+A second thread (PID 5236) rushes into the blog-security-main directory on HarddiskVolume5.
+​The Twist: This volume mapped directly to the hypervisor's shared folder connected to the HOST physical drive. DarkSide was attempting a Guest-to-Host lateral infection.
+​Outcome: Attached to all volumes, Kratos intercepts the renaming after just 2 files (about.html and a web page). The process is killed instantly, preserving the host-based project in its entirety.
+
+​4. The Final Blow: O(1) Immunization
+A third launch attempt of the binary is initiated (PID 704).
+Right at the PreCreate callback, Kratos hashes the PE header, matches the blacklisted fingerprint, and smothers execution at the source: 0 files touched.
+
+# Battle Report:
+​User files impacted: 5 total (3 on Guest, 2 on Host via Shared Folder).
+​Guest-to-Host lateral infection: Completely blocked from Ring 0 inside the VM.
+​Response time: Microseconds (fixed-point LUT entropy calculation, zero floating-point operations).
+​Proactive defense: 100% FNV-1a fingerprinting efficacy upon re-execution.
 
 # PoC
 
