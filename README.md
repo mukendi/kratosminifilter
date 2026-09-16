@@ -334,15 +334,15 @@ A second thread (PID 5236) rushes into the blog-security-main directory on Hardd
 ​The Twist: This volume mapped directly to the hypervisor's shared folder connected to the HOST physical drive. DarkSide was attempting a Guest-to-Host lateral infection.
 ​Outcome: Attached to all volumes, Kratos intercepts the renaming after just 2 files (about.html and a web page). The process is killed instantly, preserving the host-based project in its entirety.
 
-​4. The Final Blow: O(1) Immunization
+​##4. The Final Blow:## O(1) Immunization
 A third launch attempt of the binary is initiated (PID 704).
 Right at the PreCreate callback, Kratos hashes the PE header, matches the blacklisted fingerprint, and smothers execution at the source: 0 files touched.
 
 ## Battle Report:
 
 - User files impacted: 5 total (3 on Guest, 2 on Host via Shared Folder).
-
-​- Guest-to-Host Guest-to-Host lateral infection: Completely blocked from Ring 0 inside the VM.
+  
+- Guest-to-Host Guest-to-Host lateral infection: Completely blocked from Ring 0 inside the VM.
 
 - Ressponse time: Microseconds (fixed-point LUT entropy calculation, zero flooperationst operations)
 
