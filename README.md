@@ -320,7 +320,7 @@ Kratos serves as an experimental platform for studying:
 # PoC
 
 ![Architecture](https://github.com/mukendi/kratosminifilter/blob/master/Kratos_DarkSide.png)
-‎**Figure 1:  Battle - Kratos vs DarkSide**
+‎Figure 1:  Battle - Kratos vs DarkSide
 ---
 
 # Safety Warning
