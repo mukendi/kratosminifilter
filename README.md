@@ -344,7 +344,7 @@ Right at the PreCreate callback, Kratos hashes the PE header, matches the blackl
 
 ​- Guest-to-Host lateral infection: Completely blocked from Ring 0 inside the VM.
 
-​- Response time: Microseconds (fixed-point LUT entropy calculation, zero floating-point operations).
+- Response time: Microseconds (fixed-point LUT entropy calculation, zero floating-point operations).
 
 ​- Proactive defense: 100% FNV-1a fingerprinting efficacy upon re-execution.
 
