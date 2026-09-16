@@ -340,13 +340,13 @@ Right at the PreCreate callback, Kratos hashes the PE header, matches the blackl
 
 ## Battle Report:
 
-​- User files impacted: 5 total (3 on Guest, 2 on Host via Shared Folder).
+- User files impacted: 5 total (3 on Guest, 2 on Host via Shared Folder).
 
-​- Guest-to-Host lateral infection: Completely blocked from Ring 0 inside the VM.
+​- Guest-to-Host Guest-to-Host lateral infection: Completely blocked from Ring 0 inside the VM.
 
-- Response time: Microseconds (fixed-point LUT entropy calculation, zero floating-point operations).
+- Ressponse time: Microseconds (fixed-point LUT entropy calculation, zero flooperationst operations)
 
-​- Proactive defense: 100% FNV-1a fingerprinting efficacy upon re-execution.
+- ​Proactive defense: 100% FNV-1a fingerprinting efficacy upon re-execution.
 
 ## PoC
 
