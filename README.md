@@ -59,32 +59,6 @@ The detector identifies:
 
 ---
 
-# Threat Scoring
-
-Every suspicious action contributes to a cumulative score.
-
-| Event                  | Score|
-|-------------------------------|
-| Valuable File Deletion | +10  |
-| Suspicious Rename      | +40  |
-| High Entropy Writes    | +40  |
-| Ransom Note Creation   | +60  |
-| Shadow Copy Deletion   | +75  |
-
-```
-0 ─────────────── Normal
-
-60 ─────────────   Warning
-
-80 ─────────────   Critical
-
-Terminate Process
-
-Blacklist Fingerprint
-```
-
----
-
 # Fingerprint Blacklist
 
 Once ransomware is confirmed, Kratos computes a 64-bit FNV-1a fingerprint from the executable.
