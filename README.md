@@ -40,7 +40,6 @@ Kratos combines three independent detection layers.
 - Valuable file deletion
 - Suspicious rename operations
 - Ransom note creation
-- Entropy values
 
 ---
 
