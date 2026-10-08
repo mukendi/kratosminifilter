@@ -40,7 +40,7 @@ Kratos combines three independent detection layers.
 - Valuable file deletion
 - Suspicious rename operations
 - Ransom note creation
-- Shadow Copy deletion
+- Entropy values
 
 ---
 
@@ -63,20 +63,20 @@ The detector identifies:
 
 Every suspicious action contributes to a cumulative score.
 
-| Event | Score |
-|-------|-------:|
-| Valuable File Deletion | +10 |
-| Suspicious Rename | +40 |
-| High Entropy Writes | +40 |
-| Ransom Note Creation | +60 |
-| Shadow Copy Deletion | +75 |
+| Event                  | Score|
+|-------------------------------|
+| Valuable File Deletion | +10  |
+| Suspicious Rename      | +40  |
+| High Entropy Writes    | +40  |
+| Ransom Note Creation   | +60  |
+| Shadow Copy Deletion   | +75  |
 
 ```
 0 ─────────────── Normal
 
-60 ───────────── Warning
+60 ─────────────   Warning
 
-80 ───────────── Critical
+80 ─────────────   Critical
 
 Terminate Process
 
@@ -114,21 +114,6 @@ Unlike filename-based blacklists, fingerprinting survives:
 - Test Signing enabled
 - Secure Boot disabled (recommended)
 
----
-
-# Research Goals
-
-Kratos serves as an experimental platform for studying:
-
-- Behavioral ransomware detection
-- Windows File System MiniFilters
-- Kernel-mode telemetry
-- File-system monitoring
-- EDR detection logic
-- Process reputation
-- Anti-ransomware techniques
-
-
 
 ---
 # Attack timeline
@@ -144,7 +129,7 @@ The malware shifts to its destructive phase, targeting desktop files with the .2
 After 3 suspicious renames (a ZIP archive and 2 PNG images), syntax analysis combined with high entropy pushes the Threat Score past the critical threshold (\ge 80).
 ​Action: Kratos denies I/O (STATUS_ACCESS_DENIED), terminates the process (PID 6412), samples the first 4096 bytes of the PE header, and registers its FNV-1a hash (07BACD78B04E01D9) in the kernel blacklist.
 
-​3. Cross-Boundary Attack: Saving the HOST System! 🛑
+​3. Cross-Boundary Attack: Saving the HOST System!
 A second thread (PID 5236) rushes into the blog-security-main directory on HarddiskVolume5.
 ​The Twist: This volume mapped directly to the hypervisor's shared folder connected to the HOST physical drive. DarkSide was attempting a Guest-to-Host lateral infection.
 ​Outcome: Attached to all volumes, Kratos intercepts the renaming after just 2 files (about.html and a web page). The process is killed instantly, preserving the host-based project in its entirety.
@@ -169,25 +154,3 @@ Right at the PreCreate callback, Kratos hashes the PE header, matches the blackl
 
 ‎Figure : Kratos vs DarkSide
 
-
-# Safety Warning
-
-Kratos executes inside the Windows kernel.
-
-Incorrect callbacks or synchronization bugs may result in system crashes.
-
-Use only inside isolated research environments.
-
----
-
-# Research Mission
-
-Kratos is not designed to compete with commercial antivirus software.
-
-Its objective is to demonstrate how modern behavioral anti-ransomware technologies can be implemented inside a Windows Kernel MiniFilter while remaining understandable, extensible and suitable for research.
-
----
-
-# License
-
-Educational and Research Purposes.
