@@ -1,6 +1,6 @@
 # Kratos MiniFilter
 
-> A research-oriented Windows Kernel MiniFilter designed to study behavioral ransomware detection at the file-system level.
+Kratos Minifilter is a Windows kernel driver (FLTMGR.SYS) built for real-time ransomware detection and file I/O mitigation. It intercepts low-level IRPs to instantly block unauthorized mass encryption and canary triggers.
 
 ![Platform](https://img.shields.io/badge/Platform-Windows%20x64-blue)
 ![Language](https://img.shields.io/badge/Language-C%2B%2B-orange)
